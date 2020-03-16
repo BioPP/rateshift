@@ -165,22 +165,24 @@ int main(int args, char ** argv)
   ApplicationTools::displayResult("Writing results to", output);
   ofstream out(output, ios::out);
   out << "Group\tr\tr.fg\tr.bg\tAIC1\tAIC2\tdiffLnL\tP.value" << endl;
+  ApplicationTools::displayTask("Testing all sites", true);
   for (size_t i = 0; i < sites->getNumberOfSites(); ++i) {
+    ApplicationTools::displayGauge(i, sites->getNumberOfSites() - 1, '=');
     SiteSelection s;
     s.push_back(i);
     unique_ptr<SiteContainer> site(SiteContainerTools::getSelectedSites(*sites, s));
 
     oneRateTl->setData(*site);
     oneRateTl->initialize();
-    OptimizationTools::optimizeNumericalParameters2	(oneRateTl.get(),
-        oneRateTl->getParameters().subList(rateParam),
+    OptimizationTools::optimizeNumericalParameters2(oneRateTl.get(),
+        oneRateTl->getParameters().createSubList(rateParam),
         0, 0.000001, 10000, nullptr, nullptr, false, false, 0,
         OptimizationTools::OPTIMIZATION_NEWTON);
     
     twoRateTl->setData(*site);
     twoRateTl->initialize();
-    OptimizationTools::optimizeNumericalParameters2	(twoRateTl.get(),
-        twoRateTl->getParameters().subList(rateParams),
+    OptimizationTools::optimizeNumericalParameters2(twoRateTl.get(),
+        twoRateTl->getParameters().createSubList(rateParams),
         0, 0.000001, 10000, nullptr, nullptr, false, false, 0,
         OptimizationTools::OPTIMIZATION_NEWTON);
 
@@ -206,6 +208,7 @@ int main(int args, char ** argv)
     out << pvalue;
     out << endl;
   }
+  ApplicationTools::displayTaskDone();
 
   //Exiting...
   rateshift.done();
