@@ -1,3 +1,4 @@
+DATA=nd5
 alphabet = Protein
 input.sequence.file = $(DATA).aln.mase
 input.sequence.format = Mase(siteSelection=Gblocks)

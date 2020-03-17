@@ -28,18 +28,14 @@
 using namespace std;
 
 #include <Bpp/App/BppApplication.h>
-//#include <Bpp/App/ApplicationTools.h>
-//#include <Bpp/Io/FileTools.h>
-//#include <Bpp/Text/TextTools.h>
-//#include <Bpp/Numeric/Random/RandomTools.h>
 
 // From bpp-seq:
 #include <Bpp/Seq/App/SequenceApplicationTools.h>
 #include <Bpp/Seq/Container/SiteContainerTools.h>
-//#include <Bpp/Seq/SequenceTools.h>
 
 // From bpp-phyl:
 #include <Bpp/Phyl/Tree.h>
+#include <Bpp/Phyl/Io/Newick.h>
 #include <Bpp/Phyl/App/PhylogeneticsApplicationTools.h>
 #include <Bpp/Phyl/Likelihood/RHomogeneousTreeLikelihood.h>
 #include <Bpp/Phyl/Likelihood/RNonHomogeneousTreeLikelihood.h>
@@ -96,6 +92,28 @@ int main(int args, char ** argv)
 
   //Get tree:
   unique_ptr< TreeTemplate<Node> > tree(dynamic_cast<TreeTemplate<Node> *>(PhylogeneticsApplicationTools::getTree(rateshift.getParams())));
+
+  //Eventually, print tree with id to a file in order to select foreground branches:
+  string treeWIdPath = ApplicationTools::getAFilePath("output.tree_ids.file", rateshift.getParams(), false, false, "", true, "none", 1);
+  if (treeWIdPath != "none")
+  {
+    vector<Node*> nodes = tree->getNodes();
+    for (auto node : nodes)
+    {
+      if (node->isLeaf())
+        node->setName(TextTools::toString(node->getId()) + "_" + node->getName());
+      else
+        node->setBranchProperty("NodeId", BppString(TextTools::toString(node->getId())));
+    }
+    Newick treeWriter;
+    treeWriter.enableExtendedBootstrapProperty("NodeId");
+    ApplicationTools::displayResult("Writing tagged tree to", treeWIdPath);
+    treeWriter.write(*tree, treeWIdPath);
+    cout << "BppRateShift's done." << endl;
+    exit(0);
+  }
+
+
 
   //Get substitution model:
   unique_ptr<TransitionModel> model(PhylogeneticsApplicationTools::getTransitionModel(alphabet, gCode.get(), sites.get(), rateshift.getParams()));
