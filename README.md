@@ -13,6 +13,48 @@ This implementation compares two sets of branches, arbitrarily refered to as 'fo
 
 BppRateShift follows the BppO syntax, and all sequence and tree format supported by Bio++ (see the BppSuite manual for a complete reference). Input branches are specified as a list of node ids. Such nodes can be output by programms such as bppML, or visualized using the BppPhyView.
 
+Installation
+============
+
+### Binaries
+
+A binary static executable (linux 64bits) can be downladed [soon available].
+    
+### Compilation from sources
+
+Bio++ Rateshift requires the latest development version of the Bio++ libraries (components core, seq and phyl). If they are not installed on your system, you can perform a local compilation:
+```bash
+git clone https://github.com/BioPP/bpp-core.git
+cd bpp-core
+mkdir build
+cd build
+cmake -DCMAKE_INSTALL_PREFIX=$HOME/.local
+make install -j 2
+
+git clone https://github.com/BioPP/bpp-seq.git
+cd bpp-seq
+mkdir build
+cd build
+cmake -DCMAKE_INSTALL_PREFIX=$HOME/.local
+make install -j 2
+
+git clone https://github.com/BioPP/bpp-phyl.git
+cd bpp-phyl
+mkdir build
+cd build
+cmake -DCMAKE_INSTALL_PREFIX=$HOME/.local
+make install -j 2
+```
+If everything went well, you can compile Bio++ RateShift:
+```bash
+git clone https://github.com/BioPP/rateshift.git
+cd rateshift
+mkdir build
+cd build
+cmake -DCMAKE_INSTALL_PREFIX=$HOME/.local
+make install
+```
+
 Example of usage
 ================
 
