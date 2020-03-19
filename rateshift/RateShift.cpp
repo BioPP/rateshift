@@ -57,8 +57,8 @@ void help()
 int main(int args, char ** argv)
 {
   cout << "******************************************************************" << endl;
-  cout << "*               Bio++ Rate Shift, version 0.0.1.                 *" << endl;
-  cout << "* Author: J. Dutheil                        Last Modif. 03/03/20 *" << endl;
+  cout << "*               Bio++ Rate Shift, version 0.9.0.                 *" << endl;
+  cout << "* Author: J. Y. Dutheil                     Last Modif. 03/03/20 *" << endl;
   cout << "*                                                                *" << endl;
   cout << "* Original work: Tal Pupko & Nicolas Galtier                     *" << endl;
   cout << "*                     Proc Biol Sci. 2002 Jul 7;269(1498):1313-6.*" << endl;
