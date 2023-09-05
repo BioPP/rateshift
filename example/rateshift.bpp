@@ -4,7 +4,10 @@ input.sequence.file = $(DATA).aln.mase
 input.sequence.format = Mase(siteSelection=Gblocks)
 input.tree.file = $(DATA)-PhyML_tree.dnd
 input.tree.format = Newick
-model = LG08
+model = LG08(data = 1)
 rate_distribution = Gamma(n=4, alpha=0.5)
-foreground_branches =
+foreground_branches = 
 output.file = $(DATA)-rates.tsv
+output.tree.file = $(DATA)-tree-optimized.dnd
+optimization.reparametrization = no
+

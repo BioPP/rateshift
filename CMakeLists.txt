@@ -12,7 +12,7 @@ if (NOT CMAKE_BUILD_TYPE)
       FORCE)
 endif()
 
-set(CMAKE_CXX_FLAGS "-std=c++11 -O2 -g3 -fmessage-length=0 -Wall")
+set(CMAKE_CXX_FLAGS "-std=c++14 -O2 -g3 -fmessage-length=0 -Wall")
 
 
 
@@ -64,7 +64,7 @@ if (CMAKE_INSTALL_PREFIX)
 endif (CMAKE_INSTALL_PREFIX)
 
 include (GNUInstallDirs)
-find_package (bpp-phyl 12.0.0 REQUIRED)
+find_package (bpp-phyl3 1.0.0 REQUIRED)
 
 # Set the CMAKE_PREFIX_PATH for the find_library fonction when using non
 # standard install location
@@ -80,9 +80,9 @@ ADD_SUBDIRECTORY(rateshift)
 # Packager
 SET(CPACK_PACKAGE_NAME "bpprateshift")
 SET(CPACK_PACKAGE_VENDOR "Julien Y. Dutheil")
-SET(CPACK_PACKAGE_VERSION "0.9.0")
-SET(CPACK_PACKAGE_VERSION_MAJOR "0")
-SET(CPACK_PACKAGE_VERSION_MINOR "9")
+SET(CPACK_PACKAGE_VERSION "1.0.0")
+SET(CPACK_PACKAGE_VERSION_MAJOR "1")
+SET(CPACK_PACKAGE_VERSION_MINOR "0")
 SET(CPACK_PACKAGE_VERSION_PATCH "0")
 SET(CPACK_PACKAGE_DESCRIPTION_SUMMARY "BppRateShift: a re-implementation of Pupko and Galtier's covarion test.")
 SET(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_SOURCE_DIR}/LICENSE")
@@ -90,7 +90,7 @@ SET(CPACK_RESOURCE_FILE_AUTHORS "${CMAKE_SOURCE_DIR}/AUTHORS")
 SET(CPACK_RESOURCE_FILE_INSTALL "${CMAKE_SOURCE_DIR}/INSTALL")
 SET(CPACK_SOURCE_GENERATOR "TGZ")
 # /!\ This assumes that an external build is used
-SET(CPACK_SOURCE_IGNORE_FILES 
+SET(CPACK_SOURCE_IGNORE_FILES
        "/build/" 
        "/examples/" 
        "/\\\\.git/" 

@@ -34,11 +34,14 @@ using namespace std;
 #include <Bpp/Seq/Container/SiteContainerTools.h>
 
 // From bpp-phyl:
-#include <Bpp/Phyl/Tree.h>
+#include <Bpp/Phyl/Tree/Tree.h>
 #include <Bpp/Phyl/Io/Newick.h>
 #include <Bpp/Phyl/App/PhylogeneticsApplicationTools.h>
-#include <Bpp/Phyl/Likelihood/RHomogeneousTreeLikelihood.h>
-#include <Bpp/Phyl/Likelihood/RNonHomogeneousTreeLikelihood.h>
+#include <Bpp/Phyl/Legacy/App/PhylogeneticsApplicationTools.h>
+#include <Bpp/Phyl/Legacy/OptimizationTools.h>
+#include <Bpp/Phyl/Legacy/Likelihood/DiscreteRatesAcrossSitesTreeLikelihood.h>
+#include <Bpp/Phyl/Legacy/Likelihood/RHomogeneousTreeLikelihood.h>
+#include <Bpp/Phyl/Legacy/Likelihood/RNonHomogeneousTreeLikelihood.h>
 #include <Bpp/Phyl/Model/RateDistribution/ConstantRateDistribution.h>
 #include <Bpp/Phyl/OptimizationTools.h>
 
@@ -57,8 +60,8 @@ void help()
 int main(int args, char ** argv)
 {
   cout << "******************************************************************" << endl;
-  cout << "*               Bio++ Rate Shift, version 0.9.0.                 *" << endl;
-  cout << "* Author: J. Y. Dutheil                     Last Modif. 03/03/20 *" << endl;
+  cout << "*               Bio++ Rate Shift, version 1.0.0.                 *" << endl;
+  cout << "* Author: J. Y. Dutheil                     Last Modif. 04/09/23 *" << endl;
   cout << "*                                                                *" << endl;
   cout << "* Original work: Tal Pupko & Nicolas Galtier                     *" << endl;
   cout << "*                     Proc Biol Sci. 2002 Jul 7;269(1498):1313-6.*" << endl;
@@ -77,21 +80,22 @@ int main(int args, char ** argv)
   rateshift.startTimer();
 
   //Get alphabet and genetic code (if needed):
-  Alphabet* alphabet      = SequenceApplicationTools::getAlphabet(rateshift.getParams());
-  unique_ptr<GeneticCode> gCode;
-  CodonAlphabet* codonAlphabet = dynamic_cast<CodonAlphabet*>(alphabet);
+  shared_ptr<const Alphabet> alphabet = SequenceApplicationTools::getAlphabet(rateshift.getParams());
+  shared_ptr<const GeneticCode> gCode;
+  auto codonAlphabet = dynamic_pointer_cast<const CodonAlphabet>(alphabet);
   if (codonAlphabet) {
     string codeDesc = ApplicationTools::getStringParameter("genetic_code", rateshift.getParams(), "Standard", "", true, true);
     ApplicationTools::displayResult("Genetic Code", codeDesc);
       
-    gCode.reset(SequenceApplicationTools::getGeneticCode(codonAlphabet->getNucleicAlphabet(), codeDesc));
+    gCode = SequenceApplicationTools::getGeneticCode(codonAlphabet->getNucleicAlphabet(), codeDesc);
   }
 
   //Get alignment:
-  unique_ptr<SiteContainer> sites(SequenceApplicationTools::getSiteContainer(alphabet, rateshift.getParams()));
+  shared_ptr<SiteContainerInterface> sites = SequenceApplicationTools::getSiteContainer(alphabet, rateshift.getParams());
 
   //Get tree:
-  unique_ptr< TreeTemplate<Node> > tree(dynamic_cast<TreeTemplate<Node> *>(PhylogeneticsApplicationTools::getTree(rateshift.getParams())));
+  auto tmpTree = PhylogeneticsApplicationTools::getTree(rateshift.getParams());
+  auto tree = make_unique<TreeTemplate<Node>>(*tmpTree);
 
   //Eventually, print tree with id to a file in order to select foreground branches:
   string treeWIdPath = ApplicationTools::getAFilePath("output.tree_ids.file", rateshift.getParams(), false, false, "", true, "none", 1);
@@ -108,7 +112,7 @@ int main(int args, char ** argv)
     Newick treeWriter;
     treeWriter.enableExtendedBootstrapProperty("NodeId");
     ApplicationTools::displayResult("Writing tagged tree to", treeWIdPath);
-    treeWriter.write(*tree, treeWIdPath);
+    treeWriter.writeTree(*tree, treeWIdPath, true);
     cout << "BppRateShift's done." << endl;
     exit(0);
   }
@@ -116,18 +120,20 @@ int main(int args, char ** argv)
 
 
   //Get substitution model:
-  unique_ptr<TransitionModel> model(PhylogeneticsApplicationTools::getTransitionModel(alphabet, gCode.get(), sites.get(), rateshift.getParams()));
-  unique_ptr<DiscreteDistribution> rDist(PhylogeneticsApplicationTools::getRateDistribution(rateshift.getParams()));
+  shared_ptr<const AlignmentDataInterface> data = sites;
+  map<string, string> unparsedParams;
+  shared_ptr<TransitionModelInterface> model = PhylogeneticsApplicationTools::getSubstitutionModel(alphabet, gCode, data, rateshift.getParams(), unparsedParams);
+  shared_ptr<DiscreteDistribution> rDist = PhylogeneticsApplicationTools::getRateDistribution(rateshift.getParams());
 
   //Optional: optimize model parameters first
   if (model->getName() != "RE08") SiteContainerTools::changeGapsToUnknownCharacters(*sites);
-  DiscreteRatesAcrossSitesTreeLikelihood* htl = new RHomogeneousTreeLikelihood(*tree, *sites, model.get(), rDist.get(), true, true, false);
+  auto htl = shared_ptr<DiscreteRatesAcrossSitesTreeLikelihoodInterface>(new RHomogeneousTreeLikelihood(*tree, *data, model, rDist, true, true, false));
   htl->initialize();
 
-  htl = dynamic_cast<DiscreteRatesAcrossSitesTreeLikelihood*>(
-    PhylogeneticsApplicationTools::optimizeParameters(htl, htl->getParameters(), rateshift.getParams()));
+  htl = dynamic_pointer_cast<DiscreteRatesAcrossSitesTreeLikelihoodInterface>(
+    PhylogeneticsApplicationToolsOld::optimizeParameters(htl, htl->getParameters(), rateshift.getParams()));
 
-  tree.reset(new TreeTemplate<Node>(htl->getTree()));
+  tree.reset(new TreeTemplate<Node>(htl->tree()));
   PhylogeneticsApplicationTools::writeTree(*tree, rateshift.getParams());
 
   // Write parameters to screen:
@@ -145,7 +151,6 @@ int main(int args, char ** argv)
 
   // Checking convergence:
   PhylogeneticsApplicationTools::checkEstimatedParameters(htl->getParameters());
-  delete htl;
 
   //Add rate parameter:
   model->addRateParameter();
@@ -155,7 +160,8 @@ int main(int args, char ** argv)
   rDist.reset(new ConstantRateDistribution());
 
   //Create a one-rate tree likelihood:
-  unique_ptr<DiscreteRatesAcrossSitesTreeLikelihood> oneRateTl(new RHomogeneousTreeLikelihood(*tree, model.get(), rDist.get(), true, false, false));
+  shared_ptr<DiscreteRatesAcrossSitesTreeLikelihoodInterface> oneRateTl(
+      new RHomogeneousTreeLikelihood(*tree, model, rDist, true, false, false));
 
   //Create a two-rate tree likelihood:
   //First, create a model set with two models, according to the foreground branches:
@@ -169,13 +175,14 @@ int main(int args, char ** argv)
   ApplicationTools::displayResult("Number of foreground branches", foregroundIds.size());
   ApplicationTools::displayResult("Number of background branches", backgroundIds.size());
 
-  unique_ptr<SubstitutionModelSet> modelSet(new SubstitutionModelSet(alphabet));
-  modelSet->addModel(model->clone(), foregroundIds);
-  modelSet->addModel(model->clone(), backgroundIds);
+  shared_ptr<SubstitutionModelSet> modelSet(new SubstitutionModelSet(alphabet));
+  modelSet->addModel(shared_ptr<TransitionModelInterface>(model->clone()), foregroundIds);
+  modelSet->addModel(shared_ptr<TransitionModelInterface>(model->clone()), backgroundIds);
   string rateParam1 = model->getNamespace() + "rate_1";
   string rateParam2 = model->getNamespace() + "rate_2";
   vector<string> rateParams{rateParam1, rateParam2};
-  unique_ptr<DiscreteRatesAcrossSitesTreeLikelihood> twoRateTl(new RNonHomogeneousTreeLikelihood(*tree, modelSet.get(), rDist.get(), false, false, false));
+  shared_ptr<DiscreteRatesAcrossSitesTreeLikelihoodInterface> twoRateTl(
+      new RNonHomogeneousTreeLikelihood(*tree, modelSet, rDist, false, false, false));
   
 
   //Loop over all sites and perform a likelihood ratio test. Print to SGED file.
@@ -188,18 +195,18 @@ int main(int args, char ** argv)
     ApplicationTools::displayGauge(i, sites->getNumberOfSites() - 1, '=');
     SiteSelection s;
     s.push_back(i);
-    unique_ptr<SiteContainer> site(SiteContainerTools::getSelectedSites(*sites, s));
+    auto site = SiteContainerTools::getSelectedSites(*sites, s);
 
     oneRateTl->setData(*site);
     oneRateTl->initialize();
-    OptimizationTools::optimizeNumericalParameters2(oneRateTl.get(),
+    OptimizationToolsOld::optimizeNumericalParameters2(oneRateTl,
         oneRateTl->getParameters().createSubList(rateParam),
         0, 0.000001, 10000, nullptr, nullptr, false, false, 0,
         OptimizationTools::OPTIMIZATION_NEWTON);
     
     twoRateTl->setData(*site);
     twoRateTl->initialize();
-    OptimizationTools::optimizeNumericalParameters2(twoRateTl.get(),
+    OptimizationToolsOld::optimizeNumericalParameters2(twoRateTl,
         twoRateTl->getParameters().createSubList(rateParams),
         0, 0.000001, 10000, nullptr, nullptr, false, false, 0,
         OptimizationTools::OPTIMIZATION_NEWTON);
@@ -210,7 +217,7 @@ int main(int args, char ** argv)
     double aic2 = 4. - 2.*twoRateTl->getLogLikelihood();
 
 
-    out << "[" << sites->getSite(i).getPosition() << "]" << "\t";
+    out << "[" << sites->site(i).getCoordinate() << "]" << "\t";
     out << model->getParameters().getParameterValue(rateParam);
     out << "\t";
     out << modelSet->getParameters().getParameterValue(rateParam1);
