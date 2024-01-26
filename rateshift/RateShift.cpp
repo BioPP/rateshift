@@ -60,8 +60,8 @@ void help()
 int main(int args, char ** argv)
 {
   cout << "******************************************************************" << endl;
-  cout << "*               Bio++ Rate Shift, version 1.0.0.                 *" << endl;
-  cout << "* Author: J. Y. Dutheil                     Last Modif. 04/09/23 *" << endl;
+  cout << "*               Bio++ Rate Shift, version 1.0.1.                 *" << endl;
+  cout << "* Author: J. Y. Dutheil                     Last Modif. 26/01/24 *" << endl;
   cout << "*                                                                *" << endl;
   cout << "* Original work: Tal Pupko & Nicolas Galtier                     *" << endl;
   cout << "*                     Proc Biol Sci. 2002 Jul 7;269(1498):1313-6.*" << endl;
@@ -123,7 +123,7 @@ int main(int args, char ** argv)
   shared_ptr<const AlignmentDataInterface> data = sites;
   map<string, string> unparsedParams;
   shared_ptr<TransitionModelInterface> model = PhylogeneticsApplicationTools::getSubstitutionModel(alphabet, gCode, data, rateshift.getParams(), unparsedParams);
-  shared_ptr<DiscreteDistribution> rDist = PhylogeneticsApplicationTools::getRateDistribution(rateshift.getParams());
+  shared_ptr<DiscreteDistributionInterface> rDist = PhylogeneticsApplicationTools::getRateDistribution(rateshift.getParams());
 
   //Optional: optimize model parameters first
   if (model->getName() != "RE08") SiteContainerTools::changeGapsToUnknownCharacters(*sites);
@@ -131,7 +131,7 @@ int main(int args, char ** argv)
   htl->initialize();
 
   htl = dynamic_pointer_cast<DiscreteRatesAcrossSitesTreeLikelihoodInterface>(
-    PhylogeneticsApplicationToolsOld::optimizeParameters(htl, htl->getParameters(), rateshift.getParams()));
+    LegacyPhylogeneticsApplicationTools::optimizeParameters(htl, htl->getParameters(), rateshift.getParams()));
 
   tree.reset(new TreeTemplate<Node>(htl->tree()));
   PhylogeneticsApplicationTools::writeTree(*tree, rateshift.getParams());
@@ -199,14 +199,14 @@ int main(int args, char ** argv)
 
     oneRateTl->setData(*site);
     oneRateTl->initialize();
-    OptimizationToolsOld::optimizeNumericalParameters2(oneRateTl,
+    LegacyOptimizationTools::optimizeNumericalParameters2(oneRateTl,
         oneRateTl->getParameters().createSubList(rateParam),
         0, 0.000001, 10000, nullptr, nullptr, false, false, 0,
         OptimizationTools::OPTIMIZATION_NEWTON);
     
     twoRateTl->setData(*site);
     twoRateTl->initialize();
-    OptimizationToolsOld::optimizeNumericalParameters2(twoRateTl,
+    LegacyOptimizationTools::optimizeNumericalParameters2(twoRateTl,
         twoRateTl->getParameters().createSubList(rateParams),
         0, 0.000001, 10000, nullptr, nullptr, false, false, 0,
         OptimizationTools::OPTIMIZATION_NEWTON);
